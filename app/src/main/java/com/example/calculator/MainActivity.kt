@@ -2,12 +2,15 @@ package com.example.calculator
 
 import android.content.res.Configuration
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,9 +18,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.calculator.ui.theme.CalculatorTheme
 
@@ -33,15 +34,14 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
     // --- CYKL ŻYCIA AKTYWNOŚCI ---
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        android.util.Log.d("CalculatorState", "Bundle: $outState")
+        Log.d("CalculatorState", "Bundle: $outState")
     }
 }
-
-
 
 // --- MODELE DANYCH ---
 
@@ -68,17 +68,17 @@ val basicButtons = listOf(
     CalcButton("7"), CalcButton("8"), CalcButton("9"), CalcButton("/", type = ButtonType.OPERATOR),
     CalcButton("4"), CalcButton("5"), CalcButton("6"), CalcButton("*", type = ButtonType.OPERATOR),
     CalcButton("1"), CalcButton("2"), CalcButton("3"), CalcButton("-", type = ButtonType.OPERATOR),
-    CalcButton("0"), CalcButton("."), CalcButton("+", type = ButtonType.OPERATOR), CalcButton("=", type = ButtonType.EQUALS)
+    CalcButton("0"), CalcButton(","), CalcButton("+", type = ButtonType.OPERATOR), CalcButton("=", type = ButtonType.EQUALS)
 )
 
 val scientificButtons = listOf(
-    CalcButton("sin", "sin(" , ButtonType.FUNCTION),
-    CalcButton("cos", "cos(" , ButtonType.FUNCTION),
-    CalcButton("tan", "tan(" , ButtonType.FUNCTION),
+    CalcButton("sin", "sin(", ButtonType.FUNCTION),
+    CalcButton("cos", "cos(", ButtonType.FUNCTION),
+    CalcButton("tan", "tan(", ButtonType.FUNCTION),
     CalcButton("π", "pi", ButtonType.FUNCTION),
     CalcButton("√", "sqrt(", ButtonType.FUNCTION),
     CalcButton("x^y", "^", ButtonType.FUNCTION),
-    CalcButton("ln", "ln(" , ButtonType.FUNCTION),
+    CalcButton("ln", "ln(", ButtonType.FUNCTION),
     CalcButton("e", "e", ButtonType.FUNCTION)
 )
 
@@ -87,14 +87,30 @@ val scientificButtons = listOf(
 @Composable
 fun CalculatorScreen(modifier: Modifier = Modifier) {
     var expression by rememberSaveable { mutableStateOf("") }
+    var result by rememberSaveable { mutableStateOf("") }
+
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     val onButtonClick: (CalcButton) -> Unit = { button ->
         when {
-            button.isClear -> expression = ""
-            button.isDelete -> if (expression.isNotEmpty()) expression = expression.dropLast(1)
-            else -> expression += button.textToAppend
+            button.isClear -> {
+                expression = ""
+                result = ""
+            }
+            button.isDelete -> {
+                if (expression.isNotEmpty()) {
+                    expression = expression.dropLast(1)
+                    result = ""
+                }
+            }
+            button.type == ButtonType.EQUALS -> {
+                result = evaluateExpression(expression)
+            }
+            else -> {
+                expression += button.textToAppend
+                result = ""
+            }
         }
     }
 
@@ -105,6 +121,7 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
     ) {
         DisplaySection(
             expression = expression,
+            result = result,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
@@ -146,25 +163,45 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun DisplaySection(expression: String, modifier: Modifier = Modifier) {
+fun DisplaySection(
+    expression: String,
+    result: String,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Bottom,
-            horizontalAlignment = Alignment.End
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.CenterEnd
         ) {
-            Text(
-                text = if (expression.isEmpty()) "0" else expression,
-                style = MaterialTheme.typography.headlineLarge,
-                textAlign = TextAlign.End,
-                maxLines = 3,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (expression.isEmpty()) "0" else expression,
+                    style = MaterialTheme.typography.headlineLarge,
+                    maxLines = 1,
+                    color = if (result.isEmpty()) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+
+                if (result.isNotEmpty()) {
+                    Text(
+                        text = " = $result",
+                        style = MaterialTheme.typography.headlineLarge,
+                        maxLines = 1,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         }
     }
 }
