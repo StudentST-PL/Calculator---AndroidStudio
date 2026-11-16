@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,7 +33,15 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    // --- CYKL ŻYCIA AKTYWNOŚCI ---
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        android.util.Log.d("CalculatorState", "Bundle: $outState")
+    }
 }
+
+
 
 // --- MODELE DANYCH ---
 
@@ -77,7 +86,7 @@ val scientificButtons = listOf(
 
 @Composable
 fun CalculatorScreen(modifier: Modifier = Modifier) {
-    var expression by remember { mutableStateOf("") }
+    var expression by rememberSaveable { mutableStateOf("") }
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
